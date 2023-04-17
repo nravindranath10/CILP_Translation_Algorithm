@@ -9,9 +9,7 @@ import numpy as np
 
 import math
 
-
 from functools import reduce
- 
  
 def unique(lst):
     return reduce(lambda re, x: re+[x] if x not in re else re, lst, [])
