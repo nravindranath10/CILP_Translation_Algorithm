@@ -11,6 +11,7 @@ import math
 
 from functools import reduce
  
+ 
 def unique(lst):
     return reduce(lambda re, x: re+[x] if x not in re else re, lst, [])
     
@@ -152,7 +153,7 @@ def get_W(k, mu, beta):
     numerator = math.log(1 + Amin) - math.log(1 - Amin)
     denominator = MAXP_k_and_mu * (Amin - 1) + Amin + 1
     W = (2 * numerator) / (beta * denominator)
-    W = abs(W * 2)
+    W = abs(2 * W)
     return W
 
 
@@ -184,7 +185,7 @@ def initialize_and_return_weight_matrices_and_bias_vectors(clauses_data, k, mu, 
                     x1 = body_in_list_form.pop(i)
                     x2 = body_in_list_form.pop(i)
             if empty_body_encountered == True:
-                c = b-num_empty_bodies
+                c = b - num_empty_bodies
             else:
                 c = b
             for j in range(len(body_in_list_form)):
@@ -310,10 +311,11 @@ def name(body_list, head_list):
     return name_inputs, name_outputs
                   
 
-def check(name_inputs, name_outputs, input_vector_list, val_A2_list, k, mu, beta):
+def check(name_inputs, name_outputs, input_vector_list_original, val_A2_list, k, mu, beta):
     pairs = []
     val_act_input = []
     val_act_output = []
+    
     for o1 in range(len(name_outputs)):
         for i1 in range(len(name_inputs)):
             if name_outputs[o1] == name_inputs[i1]:
@@ -322,7 +324,7 @@ def check(name_inputs, name_outputs, input_vector_list, val_A2_list, k, mu, beta
     for t in pairs:
         i2 = t[0]
         o2 = t[1]
-        val_act_input.append(get_valuation_act(beta, k, mu, input_vector_list[i2]))
+        val_act_input.append(get_valuation_act(beta, k, mu, input_vector_list_original[i2]))
         val_act_output.append(get_valuation_act(beta, k, mu, val_A2_list[o2]))
     
     flag = True
@@ -335,7 +337,8 @@ def check(name_inputs, name_outputs, input_vector_list, val_A2_list, k, mu, beta
 
 def get_NN_output(body_list, head_list, beta, k, mu, Weight_Input2Hidden, Weight_Hidden2Output, Bias_Hidden, Bias_Output):
     
-    input_vector_list = [-1]*num_literals_in_bodies_of_clauses(num_positive_literals_in_body_of_clause(body_list), num_negative_literals_in_body_of_clause(body_list))
+    input_vector_list_original = [-1]*num_literals_in_bodies_of_clauses(num_positive_literals_in_body_of_clause(body_list), num_negative_literals_in_body_of_clause(body_list))
+    input_vector_list = input_vector_list_original.copy()
     input_vector = np.array(input_vector_list)
     name_inputs, name_outputs = name(body_list, head_list)
     print(name_inputs, name_outputs)
@@ -351,18 +354,22 @@ def get_NN_output(body_list, head_list, beta, k, mu, Weight_Input2Hidden, Weight
         # feedforward propagation on output layer
         Z2 = np.add(np.dot(Weight_Hidden2Output.T, A1), Bias_Output)
         A2_list = [get_activation_h(beta, z) for z in Z2]
+        print(A2_list)
+        input("A2_list")
         val_A2_list = [get_valuation_act(beta, k, mu, x) for x in A2_list]
 
         for o in range(len(name_outputs)):
             for i in range(len(name_inputs)):
                 if name_outputs[o] == name_inputs[i]:
-                    input_vector_list[i] = get_valuation_act(beta, k, mu, A2_list[o])
+                    input_vector_list[i] = val_A2_list[o]
                     
-                    flag = check(name_inputs, name_outputs, input_vector_list, val_A2_list, k, mu, beta)
-                    if flag == True:
-                        print(input_vector_list)
-                        input("input list")
-                        return itr+1, val_A2_list
+        flag = check(name_inputs, name_outputs, input_vector_list_original, val_A2_list, k, mu, beta)
+        if flag == True:
+            print(input_vector_list)
+            input("input list")
+            return itr+1, val_A2_list
+        else:
+            input_vector_list_original = input_vector_list                    
                                                 
 
 #############################################################################
